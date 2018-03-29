@@ -1,0 +1,64 @@
+function [heads,data,n_set,stress]=read_rpt(fname,n_line)
+fid=fopen(fname,'rt');
+lcount=0;
+heads={};
+n_set=0;
+dheads={};
+ihead=0;
+ddata={};
+data={};
+dn_set=0;
+while fid~=-1
+    tmpl=fgetl(fid);
+    if tmpl==-1
+        break;
+    end
+    lcount=lcount+1;
+
+    if size(tmpl,2)<20
+        continue;
+    elseif any(strfind(tmpl, 'X'))
+        headline=tmpl;
+        dheads=strsplit(tmpl,{' ','\t'});
+        emphd=[];
+
+        for idheads=1:size(dheads,2)
+            if isempty(dheads{idheads})
+                emphd=[emphd,idheads];
+            end
+        end
+        dheads(emphd)=[];
+        heads={heads{:},dheads{2:end}};
+        for i=1:dn_set
+            ddata{i}=stress(1:Xcount(i),2*i-1:2*i);
+        end
+        data={data{:},ddata{:}};
+        n_set=n_set+dn_set;
+        dn_set=size(dheads,2)-1;
+        stress=zeros(n_line,2*dn_set);
+        ddata={};
+        X=zeros(1,dn_set);
+        Xcount=X;
+        ihead=ihead+1;
+
+    elseif ihead>0
+        X1=str2num(tmpl(1:28));
+        for ic=1:dn_set
+            ctmp=tmpl(9+19*ic:27+19*ic);
+            if any(strfind(ctmp,'NoValue'))
+                continue;
+            end
+            tmp=str2num(ctmp);
+            Xcount(ic)=Xcount(ic)+1;
+            stress(Xcount(ic),2*ic-1)=X1;
+            stress(Xcount(ic),2*ic)=tmp;
+        end
+    end
+end
+ddata=cell(1,dn_set);
+for i=1:dn_set
+    ddata{i}=stress(1:Xcount(i),2*i-1:2*i);
+end
+data={data{:},ddata{:}};
+n_set=n_set+dn_set;
+fclose(fid);
